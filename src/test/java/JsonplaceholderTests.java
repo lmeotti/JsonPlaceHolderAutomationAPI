@@ -1,7 +1,10 @@
 import com.typicode.jsonplaceholder.environment.LoaderProperties;
 import com.typicode.jsonplaceholder.objects.BodyPostDTO;
+import io.restassured.path.json.JsonPath;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
@@ -9,14 +12,20 @@ import static org.hamcrest.CoreMatchers.*;
 public class JsonplaceholderTests {
 
     private BodyPostDTO requestPost;
+    private StringBuilder comentario = new StringBuilder();
 
     @BeforeClass
-    public void setUpTests(){
+    public void setUpTests() throws IOException {
         requestPost = BodyPostDTO.builder()
                         .userId("5")
                         .title("Teste")
                         .body("Teste de comentário")
                         .build();
+
+        comentario.append("repudiandae veniam quaerat sunt sed ");
+        comentario.append("alias aut fugiat sit autem sed est ");
+        comentario.append("voluptatem omnis possimus esse voluptatibus quis ");
+        comentario.append("est aut tenetur dolor neque");
     }
 
     @Test
@@ -45,7 +54,7 @@ public class JsonplaceholderTests {
     public void CriarComentario(){
         given()
                 .baseUri(LoaderProperties.getBaseUri())
-                .basePath(LoaderProperties.getBasePathUsers())
+                .basePath(LoaderProperties.getBasePathPosts())
                 .contentType("application/json; charset=UTF-8")
             .when()
                 .body(requestPost)
@@ -59,20 +68,61 @@ public class JsonplaceholderTests {
         ;
     }
 
-    public void ConsultarComentarioCriado(){
-        given()
+    @Test
+    public void ConsultarPost(){
+
+        JsonPath response = given()
                 .baseUri(LoaderProperties.getBaseUri())
-                .basePath(LoaderProperties.getBasePathUsers())
-                .contentType("application/json; charset=UTF-8")
+                .basePath(LoaderProperties.getBasePathPosts())
             .when()
                 .body(requestPost)
-                .post()
+                .get("/5")
             .then()
-                .statusCode(201)
-                .body("id", notNullValue())
-                .body("title", equalTo(requestPost.getTitle()))
-                .body("body", equalTo(requestPost.getBody()))
-                .body("userId", equalTo(requestPost.getUserId()))
-        ;
+                .statusCode(200)
+                .extract().jsonPath();
+
+        response.get("id").equals(5);
+        response.get("userId").equals(1);
+        response.get("title").equals("nesciunt quas odio");
+        response.get("body").equals(comentario);
+    }
+
+    @Test
+    public void DeletarPost(){
+
+        given()
+                .baseUri(LoaderProperties.getBaseUri())
+                .basePath(LoaderProperties.getBasePathPosts())
+            .when()
+                .body(requestPost)
+                .delete("/5")
+            .then()
+                .statusCode(200);
+    }
+
+    @Test
+    public void DeletarPostNegativo(){
+
+        given()
+                .baseUri(LoaderProperties.getBaseUri())
+                .basePath(LoaderProperties.getBasePathPosts())
+                .when()
+                .body(requestPost)
+                .delete("/")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void AlterarPostInexistente(){
+
+        given()
+                .baseUri(LoaderProperties.getBaseUri())
+                .basePath(LoaderProperties.getBasePathPosts())
+            .when()
+                .body(requestPost)
+                .put("/101")
+            .then()
+                .statusCode(500);
     }
 }
